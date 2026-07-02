@@ -20,4 +20,30 @@ export type StocksApiResponse = {
   data: Stock[]
 }
 
+export type StockIndex = {
+  country: string
+  name: string
+  value: number
+  change: number
+  changePercent: number
+}
+
+export type IndicesApiResponse = {
+  source: string
+  updatedAt: string
+  data: StockIndex[]
+}
+
+export type SectorSummary = {
+  sector: string
+  count: number
+  averageChangePercent: number
+}
+
+export type SectorsApiResponse = {
+  source: string
+  updatedAt: string
+  data: SectorSummary[]
+}
+
 export type MarketDirection = 'up' | 'down' | 'flat'

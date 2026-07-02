@@ -1,17 +1,31 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import CategoryFilter from './components/CategoryFilter'
+import GlobalIndices from './components/GlobalIndices'
 import Header from './components/Header'
-import MajorIndices from './components/MajorIndices'
 import SectorTrends from './components/SectorTrends'
 import TopGainers from './components/TopGainers'
 import TopStocks from './components/TopStocks'
 import WorldMarketMap from './components/WorldMarketMap'
-import { fetchStocks } from './services/stocksApi'
-import type { Stock } from './types/stock'
+import { fetchIndices, fetchStocks } from './api/stockClient'
+import type { Stock, StockIndex } from './types/stock'
+
+const categoryOrder = [
+  'All',
+  'Technology',
+  'Consumer',
+  'Finance',
+  'Healthcare',
+  'Energy',
+  'Industrial',
+  'Automotive',
+]
 
 function App() {
   const [stocks, setStocks] = useState<Stock[]>([])
+  const [indices, setIndices] = useState<StockIndex[]>([])
   const [updatedAt, setUpdatedAt] = useState<string>()
   const [query, setQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState('All')
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,9 +34,14 @@ function App() {
     setIsLoading(true)
 
     try {
-      const response = await fetchStocks()
-      setStocks(response.data)
-      setUpdatedAt(response.updatedAt)
+      const [stocksResponse, indicesResponse] = await Promise.all([
+        fetchStocks(),
+        fetchIndices(),
+      ])
+
+      setStocks(stocksResponse.data)
+      setIndices(indicesResponse.data)
+      setUpdatedAt(stocksResponse.updatedAt)
       setError(null)
     } catch (caughtError) {
       const message =
@@ -57,14 +76,26 @@ function App() {
   const filteredStocks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
 
-    if (!normalizedQuery) return stocks
+    return stocks.filter((stock) => {
+      const matchesCategory =
+        selectedCategory === 'All' || stock.sector === selectedCategory
+      const matchesQuery =
+        !normalizedQuery ||
+        [stock.symbol, stock.name, stock.country, stock.sector].some((value) =>
+          value.toLowerCase().includes(normalizedQuery),
+        )
 
-    return stocks.filter((stock) =>
-      [stock.symbol, stock.name, stock.country, stock.sector].some((value) =>
-        value.toLowerCase().includes(normalizedQuery),
-      ),
+      return matchesCategory && matchesQuery
+    })
+  }, [query, selectedCategory, stocks])
+
+  const categories = useMemo(() => {
+    const availableCategories = new Set(stocks.map((stock) => stock.sector))
+
+    return categoryOrder.filter(
+      (category) => category === 'All' || availableCategories.has(category),
     )
-  }, [query, stocks])
+  }, [stocks])
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(8,145,178,0.28),transparent_32%),linear-gradient(135deg,#020617,#07111f_48%,#020617)] px-4 py-6 text-slate-100 md:px-8">
@@ -87,8 +118,15 @@ function App() {
 
         <WorldMarketMap stocks={filteredStocks} />
 
-        <section className="grid gap-4 lg:grid-cols-3">
-          <MajorIndices stocks={filteredStocks} />
+        <GlobalIndices indices={indices} />
+
+        <CategoryFilter
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
+
+        <section className="grid gap-4 lg:grid-cols-2">
           <TopGainers stocks={filteredStocks} />
           <SectorTrends stocks={filteredStocks} />
         </section>
