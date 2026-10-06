@@ -139,7 +139,7 @@ fn cors_layer() -> Result<CorsLayer, Box<dyn std::error::Error + Send + Sync>> {
         .split(',')
         .map(str::trim)
         .filter(|origin| !origin.is_empty())
-        .map(HeaderValue::from_str)
+        .map(|origin| origin.parse::<HeaderValue>())
         .collect::<Result<Vec<_>, _>>()?;
 
     if origins.is_empty() {
