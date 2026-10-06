@@ -1,10 +1,10 @@
 #![forbid(unsafe_code)]
 
 use axum::{
+    Json, Router,
     extract::State,
     http::{HeaderName, HeaderValue, Method},
     routing::get,
-    Json, Router,
 };
 use chrono::{SecondsFormat, Utc};
 use serde::{Deserialize, Serialize};
@@ -84,7 +84,10 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    tracing_subscriber::fmt().with_target(false).compact().init();
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .compact()
+        .init();
 
     let stocks: Vec<Stock> = serde_json::from_str(include_str!("../data/stocks.json"))?;
     let indices: Vec<MarketIndex> = serde_json::from_str(include_str!("../data/indices.json"))?;
